@@ -10,18 +10,17 @@ use Illuminate\Support\Facades\Log;
 
 class ImapService
 {
-    /**
-     * Подключается к ящику, используя данные из БД.
-     */
+    public function __construct(protected ClientManager $clientManager)
+    {
+    }
+
     protected function getClient(Mailbox $mailbox): Client
     {
-        $cm = new ClientManager();
-
-        $client = $cm->make([
+        $client = $this->clientManager->make([
             'host'          => $mailbox->host,
             'port'          => $mailbox->port,
             'encryption'    => $mailbox->encryption,
-            'validate_cert' => true,
+            'validate_cert' => false, // Для тестов лучше false
             'username'      => $mailbox->username,
             'password'      => $mailbox->password,
             'protocol'      => $mailbox->protocol
