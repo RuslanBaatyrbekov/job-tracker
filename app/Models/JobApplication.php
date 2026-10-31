@@ -49,4 +49,9 @@ class JobApplication extends Model
             'rejected' => 'Отказ',
         ];
     }
+
+    public function jobCategory(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(JobCategory::class, 'job_category_id');
+    }
 }

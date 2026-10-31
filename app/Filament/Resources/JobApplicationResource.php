@@ -12,7 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\Layout\Split;
-use Filament\Tables\Grouping\Group; // <-- Добавлен импорт
+use Filament\Tables\Grouping\Group;
 
 class JobApplicationResource extends Resource
 {
@@ -56,51 +56,38 @@ class JobApplicationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            // Добавляем группировку по статусу
-            ->groups([
-                Group::make('status')
-                    ->label('Этап воронки')
-                    ->getTitleFromRecordUsing(fn (JobApplication $record): string => match ($record->status) {
-                        'applied' => 'Отправлено',
-                        'interview' => 'Интервью / Тестовое',
-                        'offer' => 'Оффер',
-                        'rejected' => 'Отказ',
-                        default => 'Неизвестно',
-                    })
-                    ->collapsible(),
-            ])
-            ->defaultGroup('status')
-            // Оставляем твою красивую сетку карточек
-            ->contentGrid([
-                'md' => 2,
-                'xl' => 3,
-            ])
+            // Убрали contentGrid и Stack, теперь это будет строгий список
             ->columns([
-                Stack::make([
-                    Split::make([
-                        Tables\Columns\TextColumn::make('company_name')
-                            ->weight('bold')
-                            ->size('lg')
-                            ->searchable(),
-                        Tables\Columns\TextColumn::make('status')
-                            ->badge()
-                            ->color(fn (string $state): string => match ($state) {
-                                'applied' => 'info',
-                                'interview' => 'warning',
-                                'offer' => 'success',
-                                'rejected' => 'danger',
-                                default => 'gray',
-                            }),
-                    ]),
-                    Tables\Columns\TextColumn::make('position')
-                        ->color('gray')
-                        ->searchable(),
-                    Tables\Columns\TextColumn::make('applied_at')
-                        ->dateTime('d M Y H:i')
-                        ->color('gray')
-                        ->size('sm'),
-                ])->space(2),
+                Tables\Columns\TextColumn::make('company_name')
+                    ->label('Компания')
+                    ->searchable()
+                    ->weight('bold')
+                    ->icon('heroicon-m-building-office-2'),
+
+                Tables\Columns\TextColumn::make('position')
+                    ->label('Должность')
+                    ->searchable()
+                    ->wrap() // Перенос длинных названий на новую строку
+                    ->description(fn (\App\Models\JobApplication $record): string => $record->jobCategory?->name ?? 'Без категории'), // Выводим категорию мелким текстом под должностью
+
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Статус')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'applied'   => 'info',
+                        'interview' => 'warning',
+                        'offer'     => 'success',
+                        'rejected'  => 'danger',
+                        default     => 'gray',
+                    }),
+
+                Tables\Columns\TextColumn::make('applied_at')
+                    ->label('Дата')
+                    ->dateTime('d.m.Y H:i')
+                    ->sortable()
+                    ->color('gray'),
             ])
+            ->defaultSort('applied_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Фильтр по статусу')
@@ -113,9 +100,9 @@ class JobApplicationResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-            ])
-            ->defaultSort('applied_at', 'desc');
+            ]);
     }
+
 
     public static function getRelations(): array
     {

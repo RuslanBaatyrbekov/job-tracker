@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JobCategory extends Model
 {
-    protected $fillable = ['name', 'color'];
+    protected $fillable = [
+        'name',
+        'color',
+        'resume_text',
+        'ai_strategy_report',
+        'last_analyzed_at'
+    ];
 
     public function jobApplications(): HasMany
     {

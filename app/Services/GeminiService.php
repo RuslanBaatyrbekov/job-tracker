@@ -129,7 +129,6 @@ PROMPT;
   "position": "Название должности (иначе null)",
   "status": "applied | rejected | interview | offer",
   "rejection_reason": "Причина отказа (иначе null)",
-  "ai_advice": "Совет (иначе null)",
   "category_name": "Точное название категории из моего списка (если не подходит ни одна, верни null)"
 }
 PROMPT;

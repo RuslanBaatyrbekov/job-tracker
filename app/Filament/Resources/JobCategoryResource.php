@@ -17,16 +17,32 @@ class JobCategoryResource extends Resource
 {
     protected static ?string $model = JobCategory::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $modelLabel = 'Категория';
+    protected static ?string $pluralModelLabel = 'Категории';
+    protected static ?string $navigationGroup = 'Настройки';
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('name')
-                ->label('Название категории')
-                ->required(),
-            Forms\Components\ColorPicker::make('color')
-                ->label('Цвет бейджа'),
+            Forms\Components\Section::make('Настройки категории')->schema([
+                Forms\Components\TextInput::make('name')->label('Название')->required(),
+                Forms\Components\ColorPicker::make('color')->label('Цвет бейджа'),
+                Forms\Components\Textarea::make('resume_text')
+                    ->label('Текст резюме под эту категорию (скопируй из CV)')
+                    ->rows(10)
+                    ->columnSpanFull(),
+            ])->columns(2),
+
+            Forms\Components\Section::make('Стратегический анализ ИИ')
+                ->schema([
+                    Forms\Components\Placeholder::make('ai_strategy_report')
+                        ->hiddenLabel()
+                        ->content(fn ($record) => $record?->ai_strategy_report
+                            ? str($record->ai_strategy_report)->markdown()->toHtmlString()
+                            : 'Анализ еще не проводился. Добавьте резюме и накопите отказы.'),
+                ])
+                ->visible(fn ($record) => $record !== null), // Показываем только при редактировании
         ]);
     }
 

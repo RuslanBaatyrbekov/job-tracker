@@ -18,7 +18,10 @@ class EmailResource extends Resource
 {
     protected static ?string $model = Email::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $modelLabel = 'Категория';
+    protected static ?string $pluralModelLabel = 'Категории';
+    protected static ?string $navigationGroup = 'Настройки';
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
 
     public static function form(Form $form): Form
     {
