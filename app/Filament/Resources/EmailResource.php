@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -31,7 +32,28 @@ class EmailResource extends Resource
     {
         return $table
             ->columns([
-                //
+                TextColumn::make('subject')
+                    ->label('Тема')
+                    ->limit(50)
+                    ->searchable(),
+
+                TextColumn::make('from_address')
+                    ->label('Отправитель')
+                    ->searchable(),
+
+                TextColumn::make('status')
+                    ->label('Статус')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending_subject_scan' => 'warning',
+                        'processed' => 'success',
+                        default => 'gray',
+                    }),
+
+                TextColumn::make('date')
+                    ->label('Дата')
+                    ->dateTime('d.m.Y H:i')
+                    ->sortable(),
             ])
             ->filters([
                 //

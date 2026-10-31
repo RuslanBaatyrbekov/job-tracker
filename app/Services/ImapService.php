@@ -17,13 +17,14 @@ class ImapService
     protected function getClient(Mailbox $mailbox): Client
     {
         $client = $this->clientManager->make([
-            'host'          => $mailbox->host,
-            'port'          => $mailbox->port,
-            'encryption'    => $mailbox->encryption,
-            'validate_cert' => false, // Для тестов лучше false
-            'username'      => $mailbox->username,
-            'password'      => $mailbox->password,
-            'protocol'      => $mailbox->protocol
+            'host'           => trim($mailbox->host),
+            'port'           => (int) trim($mailbox->port),
+            'encryption'     => 'ssl', // Gmail требует строчными буквами
+            'validate_cert'  => true,  // Для Gmail лучше включить проверку сертификата
+            'username'       => trim($mailbox->username),
+            'password'       => trim($mailbox->password),
+            'protocol'       => 'imap',
+            'authentication' => 'login', // Жестко заставляем пакет использовать обычный логин
         ]);
 
         $client->connect();
@@ -33,26 +34,42 @@ class ImapService
     /**
      * Этап 1: Скачивание только заголовков писем (для экономии токенов и трафика).
      */
-    public function syncHeaders(Mailbox $mailbox): int
+    public function syncHeaders(Mailbox $mailbox, int $limit = 50): int
     {
         $count = 0;
         try {
-            $client = $this->getClient($mailbox);
-            $folder = $client->getFolder('INBOX'); // Берем папку Входящие
+            \Log::info("=== Старт синхронизации ящика {$mailbox->email} (Лимит: {$limit}) ===");
 
-            // Формируем запрос: ищем письма, пришедшие после последней синхронизации
+            $client = $this->getClient($mailbox);
+            \Log::info("1. Успешное подключение к IMAP. Выбираем папку INBOX...");
+
+            $folder = $client->getFolder('INBOX');
+
             $query = $folder->query();
-            if ($mailbox->last_synced_at) {
-                // IMAP использует специфичный формат даты
-                $query->since($mailbox->last_synced_at->format('d M Y'));
+
+            // Если лимит стандартный (50 и ниже) и есть дата последней синхронизации — используем её.
+            // Если передан большой лимит (ручной запуск), забираем свежие письма с конца без оглядки на дату.
+            if ($limit <= 50 && $mailbox->last_synced_at) {
+                \Log::info("2. Фильтр: ищем письма после " . $mailbox->last_synced_at->format('Y-m-d H:i:s'));
+                $query->since($mailbox->last_synced_at);
+            } else {
+                \Log::info("2. Фильтр: ручной режим / большой лимит, берем последние {$limit} писем.");
+                $query->all();
             }
 
-            $messages = $query->leaveUnread()->get(['FLAGS', 'INTERNALDATE', 'ENVELOPE']);
+            \Log::info("3. Выполняем запрос к серверу...");
+
+            // Сортируем от новых к старым и применяем переданный лимит
+            $messages = $query->leaveUnread()
+                ->setFetchOrder('desc')
+                ->limit($limit)
+                ->get();
+
+            \Log::info("4. Найдено писем по запросу: " . $messages->count());
 
             foreach ($messages as $message) {
                 $uid = $message->getUid();
 
-                // Проверяем, нет ли уже такого письма в базе
                 $exists = Email::where('mailbox_id', $mailbox->id)
                     ->where('imap_uid', $uid)
                     ->exists();
@@ -68,16 +85,19 @@ class ImapService
                         'status'       => 'pending_subject_scan',
                     ]);
                     $count++;
+                    \Log::info(" [+] Добавлено новое письмо UID: {$uid}");
+                } else {
+                    \Log::info(" [-] Письмо UID: {$uid} уже есть в базе, пропускаем.");
                 }
             }
 
-            // Обновляем время синхронизации
             $mailbox->update(['last_synced_at' => now()]);
+            \Log::info("=== Синхронизация завершена. Всего добавлено: {$count} ===");
 
             $client->disconnect();
 
         } catch (\Exception $e) {
-            Log::error("Ошибка синхронизации ящика {$mailbox->email}: " . $e->getMessage());
+            \Log::error("Ошибка синхронизации ящика {$mailbox->email}: " . $e->getMessage());
         }
 
         return $count;

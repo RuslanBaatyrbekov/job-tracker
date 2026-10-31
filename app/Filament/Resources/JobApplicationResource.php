@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\JobApplicationResource\Pages;
+use App\Filament\Resources\JobApplicationResource\RelationManagers\NotesRelationManager;
 use App\Models\JobApplication;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -11,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Grouping\Group; // <-- Добавлен импорт
 
 class JobApplicationResource extends Resource
 {
@@ -54,7 +56,21 @@ class JobApplicationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            // Превращаем таблицу в сетку карточек!
+            // Добавляем группировку по статусу
+            ->groups([
+                Group::make('status')
+                    ->label('Этап воронки')
+                    ->getTitleFromRecordUsing(fn (JobApplication $record): string => match ($record->status) {
+                        'applied' => 'Отправлено',
+                        'interview' => 'Интервью / Тестовое',
+                        'offer' => 'Оффер',
+                        'rejected' => 'Отказ',
+                        default => 'Неизвестно',
+                    })
+                    ->collapsible(),
+            ])
+            ->defaultGroup('status')
+            // Оставляем твою красивую сетку карточек
             ->contentGrid([
                 'md' => 2,
                 'xl' => 3,
@@ -104,7 +120,7 @@ class JobApplicationResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // Позже мы добавим сюда Relation Manager для вывода советов ИИ (таблица application_notes)
+            NotesRelationManager::class,
         ];
     }
 

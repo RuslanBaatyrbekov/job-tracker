@@ -18,8 +18,11 @@ class JobApplication extends Model
         'status',
         'salary_range',
         'job_description',
+        'job_category_id',
         'applied_at',
         'ai_metadata',
+        'rejection_reason',
+        'ai_advice',
     ];
 
     protected $casts = [
@@ -35,5 +38,15 @@ class JobApplication extends Model
     public function notes(): HasMany
     {
         return $this->hasMany(ApplicationNote::class);
+    }
+
+    public static function getKanbanStatuses(): array
+    {
+        return [
+            'applied' => 'Отправлено',
+            'interview' => 'Интервью',
+            'offer' => 'Оффер',
+            'rejected' => 'Отказ',
+        ];
     }
 }

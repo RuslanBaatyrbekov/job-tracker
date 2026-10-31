@@ -49,15 +49,22 @@ class AnalyzeEmailBodyJob implements ShouldQueue
             return;
         }
 
-        // 3. Создаем карточку отклика (или обновляем существующую, если она есть)
-        // Для упрощения пока создаем новую. Позже можно добавить логику поиска по компании.
+        $categoryId = null;
+        if (!empty($aiResult['category_name'])) {
+            $category = \App\Models\JobCategory::where('name', $aiResult['category_name'])->first();
+            if ($category) {
+                $categoryId = $category->id;
+            }
+        }
+
         $application = JobApplication::create([
             'source_email_id' => $email->id,
+            'job_category_id' => $categoryId,
             'company_name'    => $aiResult['company_name'] ?? 'Неизвестная компания',
             'position'        => $aiResult['position'] ?? 'Разработчик',
             'status'          => $aiResult['status'] ?? 'applied',
             'applied_at'      => $email->date,
-            'ai_metadata'     => $aiResult, // Сохраняем сырой ответ на всякий случай
+            'ai_metadata'     => $aiResult,
         ]);
 
         // 4. Сохраняем причину отказа, если есть

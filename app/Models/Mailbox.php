@@ -25,7 +25,7 @@ class Mailbox extends Model
     protected $casts = [
         'last_synced_at' => 'datetime',
         'is_active' => 'boolean',
-        'password' => 'encrypted', // Автоматическое шифрование пароля в Laravel 11
+        'password' => 'encrypted',
     ];
 
     public function emails(): HasMany
