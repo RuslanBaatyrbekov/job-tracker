@@ -8,5 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('mail:sync-headers')->everyOddHour();
-Schedule::command('ai:strategy')->dailyAt('02:00');
+Schedule::command('mail:sync-headers')->everyThirtyMinutes();
+Schedule::command('ai:strategy')->dailyAt('21:00');
