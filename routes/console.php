@@ -9,4 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('mail:sync-headers')->everyThirtyMinutes();
-Schedule::command('ai:strategy')->dailyAt('21:00');
+Schedule::command('ai:strategy')->dailyAt('19:07');

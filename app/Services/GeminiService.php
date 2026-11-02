@@ -109,27 +109,45 @@ PROMPT;
 
     private function buildPromptForBodyAnalysis(string $subject, string $bodyText): string
     {
-        // Берем все категории из базы, например: "IT / PHP, Склад / Minijob"
-        $categories = \App\Models\JobCategory::pluck('name')->implode(', ');
+        // Выгружаем всю базу знаний: категории, резюме и глобальные стратегии
+        $categoriesInfo = \App\Models\JobCategory::all()->map(function ($cat) {
+            return [
+                'name' => $cat->name,
+                'resume' => $cat->resume_text ?? 'Нет резюме',
+                'global_strategy' => $cat->ai_strategy_report ?? 'Стратегия еще не сформирована'
+            ];
+        });
+
+        $categoriesJson = json_encode($categoriesInfo, JSON_UNESCAPED_UNICODE);
+        $categoryNames = $categoriesInfo->pluck('name')->implode(', ');
 
         return <<<PROMPT
-Ты — карьерный консультант и парсер данных.
-Проанализируй текст письма от работодателя.
+Ты — карьерный консультант. Проанализируй ответ от работодателя.
 
-Тема: "{$subject}"
-Текст:
+ТЕМА ПИСЬМА: "{$subject}"
+ТЕКСТ ПИСЬМА:
 {$bodyText}
 
-Также у меня есть следующие категории для откликов: [{$categories}].
-Определи, к какой из них больше всего относится эта вакансия, исходя из должности или текста.
+ОБЩАЯ БАЗА ЗНАНИЙ (Доступные категории, наши резюме и текущие стратегии):
+{$categoriesJson}
 
-Извлеки данные СТРОГО в формате JSON:
+ЗАДАЧА:
+1. Определи, к какой категории из списка [{$categoryNames}] относится вакансия.
+2. Определи статус (applied, rejected, interview, offer).
+3. Если это отказ, вытащи причину.
+4. Сформируй совет (ai_advice) ИМЕННО ПО ЭТОМУ ПИСЬМУ, опираясь на Базу Знаний выбранной категории.
+   - Если это стандартная отписка, сверься со стратегией и коротко подтверди, что делать дальше.
+   - Если в письме есть уникальный фидбек, сравни его с нашим резюме и дай четкий шаг.
+   - Не придумывай советы из воздуха, опирайся на контекст стратегии.
+
+Верни СТРОГО JSON:
 {
   "company_name": "Название компании (иначе null)",
   "position": "Название должности (иначе null)",
   "status": "applied | rejected | interview | offer",
   "rejection_reason": "Причина отказа (иначе null)",
-  "category_name": "Точное название категории из моего списка (если не подходит ни одна, верни null)"
+  "category_name": "Точное название категории (иначе null)",
+  "ai_advice": "Умный совет с учетом глобальной стратегии (иначе null)"
 }
 PROMPT;
     }

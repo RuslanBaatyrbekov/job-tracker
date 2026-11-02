@@ -76,6 +76,15 @@ class AnalyzeEmailBodyJob implements ShouldQueue
             ]);
         }
 
+        // 5. Сохраняем персонализированный умный совет с учетом глобальной стратегии
+        if (!empty($aiResult['ai_advice'])) {
+            ApplicationNote::create([
+                'job_application_id' => $application->id,
+                'type'               => 'ai_advice',
+                'content'            => $aiResult['ai_advice'],
+            ]);
+        }
+
         // 6. Помечаем письмо как обработанное
         $email->update(['status' => 'processed']);
     }
