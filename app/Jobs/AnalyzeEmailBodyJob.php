@@ -7,6 +7,7 @@ use App\Models\JobApplication;
 use App\Models\ApplicationNote;
 use App\Services\GeminiService;
 use App\Services\ImapService;
+use App\Services\TelegramService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -25,7 +26,7 @@ class AnalyzeEmailBodyJob implements ShouldQueue
         $this->emailId = $emailId;
     }
 
-    public function handle(ImapService $imapService, GeminiService $geminiService): void
+    public function handle(ImapService $imapService, GeminiService $geminiService, TelegramService $telegramService): void
     {
         $email = Email::find($this->emailId);
 
@@ -87,5 +88,8 @@ class AnalyzeEmailBodyJob implements ShouldQueue
 
         // 6. Помечаем письмо как обработанное
         $email->update(['status' => 'processed']);
+
+        // 7. Отправляем пуш в Telegram
+        $telegramService->sendApplicationAlert($application);
     }
 }
