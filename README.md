@@ -1,24 +1,46 @@
-# 🤖 AI Job Application Tracker
+<div align="center">
+  <img width="1595" height="887" alt="image" src="https://github.com/user-attachments/assets/f53766e3-cf6e-4d7c-a0fa-9021751b4e8f" />
 
-A smart, automated job-hunting assistant and application tracker built with **Laravel 11**. Instead of manually updating application statuses, the system automatically fetches recruiter responses via IMAP, categorizes them, and uses **Google Gemini AI** to act as a strict career mentor, analyzing rejection patterns and suggesting targeted resume improvements.
+
+  
+  <h1>🚀 AI-Powered Job Application Tracker</h1>
+  <p><b>An advanced, automated job-tracking system built with Laravel 11, Filament v3, and Docker. Features IMAP email parsing and Gemini AI career intelligence.</b></p>
+
+  <p>
+    <img src="https://img.shields.io/badge/Laravel-11-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel">
+    <img src="https://img.shields.io/badge/Filament-v3-F59E0B?style=for-the-badge&logo=filament&logoColor=white" alt="Filament">
+    <img src="https://img.shields.io/badge/Docker-24.0+-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+    <img src="https://img.shields.io/badge/Gemini-AI-8E75B2?style=for-the-badge&logo=google&logoColor=white" alt="Gemini AI">
+  </p>
+</div>
+
+---
+
+## 🌟 Overview
+
+Managing job applications manually is tedious. **Job Tracker** automates the entire lifecycle—from parsing incoming recruiter emails via IMAP, analyzing rejection reasons or interview invites using **Google Gemini AI**, to instantly pushing actionable advice straight to your **Telegram** and displaying performance metrics on a sleek **Filament v3** dashboard.
+
+---
 
 ## ✨ Key Features
 
-* **Automated Email Sync:** Securely connects to mailboxes via IMAP (with chunking) to fetch responses, interview invites, and rejections directly from HRs.
-* **Smart AI Mentorship:** Uses Gemini AI to analyze rejection reasons, compares them against your category-specific resumes, and generates actionable, non-redundant strategy advice.
-* **AI Memory & Optimization:** The AI remembers its previous advice, tracks if you've updated your resume, and only processes new data to save API limits.
-* **Professional Admin Dashboard:** A dense, informative list view powered by **Filament v3**, featuring category tabs, status badges, and intelligent UI components.
-* **Background Processing:** IMAP synchronization and AI parsing are decoupled into robust background Jobs/Workers to ensure fast response times.
-* **Self-Hosted Infrastructure:** Fully containerized with Docker Compose, featuring automated task scheduling and persistent queues for 24/7 operation.
+- **🤖 AI-Driven Email Parsing & Insights:** Automatically processes incoming emails, determines application statuses (`applied`, `interview`, `rejected`, `offer`), extracts rejection reasons, and generates contextual advice based on a global knowledge base and resume strategy.
+- **📱 Real-time Telegram Alerts:** Instant notifications with AI-generated verdicts and action steps delivered the moment a recruiter responds.
+- **📊 Advanced Analytics Dashboard:** Interactive charts (conversion rates by category, application activity trends, status distribution) with dynamic global category filtering.
+- **🐳 Fully Containerized:** Built with Docker, utilizing PostgreSQL, Redis, and a background queue worker for seamless asynchronous processing.
+- **⏰ Smart Scheduler:** Automated daily syncing and strategy generation configured in the `Europe/Berlin` timezone.
+
+---
 
 ## 🛠️ Tech Stack
 
-* **Backend:** PHP 8.3+, Laravel 11
-* **Admin Panel:** Filament v3
-* **AI / LLM:** Google Gemini API (Flash-Lite)
-* **Databases:** PostgreSQL, Redis (Queues & Cache)
-* **Infrastructure:** Docker Compose, Nginx, Linux (WSL)
+- **Backend:** Laravel 11, PHP 8.3
+- **Admin Panel:** Filament v3 (Tailwind CSS, Livewire)
+- **Database & Cache:** PostgreSQL, Redis
+- **AI & Integrations:** Google Gemini API, Telegram Bot API
+- **Infrastructure:** Docker, Docker Compose, WSL
 
+---
 
 ## 🚀 Local Setup & Installation
 
