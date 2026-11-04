@@ -1,8 +1,7 @@
 <div align="center">
-  <img width="1595" height="887" alt="image" src="https://github.com/user-attachments/assets/f53766e3-cf6e-4d7c-a0fa-9021751b4e8f" />
+  <img width="1024" height="572" alt="image" src="https://github.com/user-attachments/assets/38bdce72-ef37-4caa-89f8-2c9f35151793" />
 
 
-  
   <h1>🚀 AI-Powered Job Application Tracker</h1>
   <p><b>An advanced, automated job-tracking system built with Laravel 11, Filament v3, and Docker. Features IMAP email parsing and Gemini AI career intelligence.</b></p>
 
@@ -77,3 +76,13 @@ Add your resumes via the Filament admin panel (`/admin/job-categories`), then ru
 docker-compose exec app php artisan ai:strategy
 
 ```
+
+---
+
+## 📸 Screenshots
+
+<img width="1024" height="572" alt="image" src="https://github.com/user-attachments/assets/784bd45b-a0a4-48c6-973a-6beede5689cc" />
+<img width="1024" height="765" alt="image" src="https://github.com/user-attachments/assets/2683af18-6f78-4ae3-967f-029c3265b392" />
+
+
+
