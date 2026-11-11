@@ -11,20 +11,23 @@ class ApplicationStatusChart extends ChartWidget
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Конверсия (Без учета ожиданий)';
+
     protected static ?int $sort = 5;
-    protected int | string | array $columnSpan = 'full';
+
+    protected int|string|array $columnSpan = 'full';
+
     protected static ?string $maxHeight = '300px';
 
     protected function getData(): array
     {
         $categoryId = $this->filters['job_category_id'] ?? null;
 
-        // Если выбрана конкретная категория, показываем только её столбец
-        $categories = JobCategory::when($categoryId, fn($q) => $q->where('id', $categoryId))
+        // When a category is selected, show only its bar
+        $categories = JobCategory::when($categoryId, fn ($q) => $q->where('id', $categoryId))
             ->withCount([
-                'jobApplications as interview_count' => fn($q) => $q->where('status', 'interview'),
-                'jobApplications as offer_count'     => fn($q) => $q->where('status', 'offer'),
-                'jobApplications as rejected_count'  => fn($q) => $q->where('status', 'rejected'),
+                'jobApplications as interview_count' => fn ($q) => $q->where('status', 'interview'),
+                'jobApplications as offer_count' => fn ($q) => $q->where('status', 'offer'),
+                'jobApplications as rejected_count' => fn ($q) => $q->where('status', 'rejected'),
             ])->get();
 
         return [

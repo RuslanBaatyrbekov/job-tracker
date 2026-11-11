@@ -11,8 +11,11 @@ class ActivityChart extends ChartWidget
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Динамика откликов (7 дней)';
+
     protected static ?int $sort = 3;
-    protected int | string | array $columnSpan = 1;
+
+    protected int|string|array $columnSpan = 1;
+
     protected static ?string $maxHeight = '250px';
 
     protected function getData(): array
@@ -25,7 +28,7 @@ class ActivityChart extends ChartWidget
             $date = now()->subDays($i);
             $labels[] = $date->format('d M');
 
-            $data[] = JobApplication::when($categoryId, fn($q) => $q->where('job_category_id', $categoryId))
+            $data[] = JobApplication::when($categoryId, fn ($q) => $q->where('job_category_id', $categoryId))
                 ->whereDate('applied_at', $date->format('Y-m-d'))
                 ->count();
         }

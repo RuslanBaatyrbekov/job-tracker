@@ -3,13 +3,15 @@
 namespace App\Filament\Widgets;
 
 use App\Models\JobCategory;
-use Filament\Widgets\Widget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Filament\Widgets\Widget;
 
 class AiInsightsWidget extends Widget
 {
     protected static string $view = 'filament.widgets.ai-insights-widget';
-    protected int | string | array $columnSpan = 'full';
+
+    protected int|string|array $columnSpan = 'full';
+
     protected static ?int $sort = 2;
 
     use InteractsWithPageFilters;

@@ -12,7 +12,7 @@ class JobCategory extends Model
         'color',
         'resume_text',
         'ai_strategy_report',
-        'last_analyzed_at'
+        'last_analyzed_at',
     ];
 
     public function jobApplications(): HasMany

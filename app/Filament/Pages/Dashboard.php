@@ -18,7 +18,7 @@ class Dashboard extends \Filament\Pages\Dashboard
                 ->label('Категория откликов')
                 ->options(JobCategory::pluck('name', 'id'))
                 ->placeholder('Все категории (Общая статистика)')
-                ->native(false)
+                ->native(false),
         ])->columns(3);
     }
 }

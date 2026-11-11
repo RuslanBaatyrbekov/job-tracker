@@ -3,23 +3,23 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\JobCategoryResource\Pages;
-use App\Filament\Resources\JobCategoryResource\RelationManagers;
 use App\Models\JobCategory;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class JobCategoryResource extends Resource
 {
     protected static ?string $model = JobCategory::class;
 
     protected static ?string $modelLabel = 'Категория';
+
     protected static ?string $pluralModelLabel = 'Категории';
+
     protected static ?string $navigationGroup = 'Настройки';
+
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
     public static function form(Form $form): Form
@@ -42,7 +42,7 @@ class JobCategoryResource extends Resource
                             ? str($record->ai_strategy_report)->markdown()->toHtmlString()
                             : 'Анализ еще не проводился. Добавьте резюме и накопите отказы.'),
                 ])
-                ->visible(fn ($record) => $record !== null), // Показываем только при редактировании
+                ->visible(fn ($record) => $record !== null), // only on edit
         ]);
     }
 

@@ -2,10 +2,10 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\JobApplication;
+use App\Services\FunnelStats;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
 class ApplicationStatsWidget extends BaseWidget
 {
@@ -13,28 +13,36 @@ class ApplicationStatsWidget extends BaseWidget
 
     protected static ?int $sort = 1;
 
+    protected function getColumns(): int
+    {
+        return 4;
+    }
+
     protected function getStats(): array
     {
         $categoryId = $this->filters['job_category_id'] ?? null;
-        $total = JobApplication::when($categoryId, fn($q) => $q->where('job_category_id', $categoryId))->count();
-        $interviews = JobApplication::when($categoryId, fn($q) => $q->where('job_category_id', $categoryId))->where('status', 'interview')->count();
-        $rejected = JobApplication::when($categoryId, fn($q) => $q->where('job_category_id', $categoryId))->where('status', 'rejected')->count();
+        $funnel = app(FunnelStats::class);
+        $stats = $funnel->summary($categoryId);
+        $week = $funnel->appliedThisWeek($categoryId);
+        $goal = config('job-search.weekly_goal');
 
         return [
-            Stat::make('Всего откликов', $total)
-                ->description($categoryId ? 'В выбранной категории' : 'Общая активность')
+            Stat::make('Отклики на этой неделе', "{$week} / {$goal}")
+                ->description($week >= $goal ? 'Цель недели выполнена' : 'До цели: '.($goal - $week))
+                ->descriptionIcon('heroicon-m-flag')
+                ->color($week >= $goal ? 'success' : 'warning'),
+            Stat::make('Всего откликов', $stats['applications'])
+                ->description("Ждут ответа: {$stats['waiting']} · без ответа: {$stats['no_response']}")
                 ->descriptionIcon('heroicon-m-briefcase')
                 ->color('primary'),
-
-            Stat::make('Интервью', $interviews)
-                ->description('Конверсия в собеседования')
+            Stat::make('Отвечают', $stats['response_rate'].'%')
+                ->description("{$stats['responded']} живых ответов (интервью или отказ)")
+                ->descriptionIcon('heroicon-m-envelope-open')
+                ->color('info'),
+            Stat::make('Доходят до интервью', $stats['interview_rate'].'%')
+                ->description("Интервью: {$stats['interviews']} · офферы: {$stats['offers']}")
                 ->descriptionIcon('heroicon-m-chat-bubble-left-right')
                 ->color('success'),
-
-            Stat::make('Отказы', $rejected)
-                ->description('Требуют анализа ИИ')
-                ->descriptionIcon('heroicon-m-x-circle')
-                ->color('danger'),
         ];
     }
 }

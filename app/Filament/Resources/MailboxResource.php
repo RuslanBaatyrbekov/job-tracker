@@ -15,8 +15,11 @@ class MailboxResource extends Resource
     protected static ?string $model = Mailbox::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
+
     protected static ?string $navigationLabel = 'Почтовые ящики';
+
     protected static ?string $modelLabel = 'Ящик';
+
     protected static ?string $pluralModelLabel = 'Ящики';
 
     public static function form(Form $form): Form
