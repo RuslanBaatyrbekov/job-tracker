@@ -32,7 +32,8 @@ services:
         volumes:
             - db-data:/var/lib/postgresql/data
         ports:
-            - "5432:5432"
+            # Only reachable from this machine (DB GUI), not from the network.
+            - "127.0.0.1:5432:5432"
 
     redis:
         image: redis:alpine
@@ -60,6 +61,20 @@ services:
         restart: unless-stopped
         working_dir: /var/www/html
         command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
+        volumes:
+            - ./:/var/www/html
+        depends_on:
+            - redis
+            - db
+
+    telegram:
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile
+        restart: unless-stopped
+        working_dir: /var/www/html
+        # Long polling: no public URL / webhook needed.
+        command: php artisan telegram:poll
         volumes:
             - ./:/var/www/html
         depends_on:
