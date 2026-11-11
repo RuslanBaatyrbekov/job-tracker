@@ -1,0 +1,7 @@
+{
+    "preset": "laravel",
+    "notPath": [
+        "config/imap.php",
+        "bootstrap/providers.php"
+    ]
+}
