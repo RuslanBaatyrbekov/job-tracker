@@ -124,7 +124,7 @@ class TelegramService
                     'allowed_updates' => json_encode(['message', 'callback_query']),
                 ]);
         } catch (\Throwable $e) {
-            Log::warning('Telegram getUpdates failed: '.$e->getMessage());
+            Log::warning('Telegram getUpdates failed: '.$this->redact($e->getMessage()));
 
             return [];
         }
@@ -162,11 +162,21 @@ class TelegramService
                 ->post("https://api.telegram.org/bot{$token}/{$method}", $payload);
 
             if ($response->failed()) {
-                Log::error("Telegram API error ({$method}): ".$response->body());
+                Log::error("Telegram API error ({$method}): ".$this->redact($response->body()));
             }
         } catch (\Throwable $e) {
-            Log::error("Telegram API unreachable ({$method}): ".$e->getMessage());
+            Log::error("Telegram API unreachable ({$method}): ".$this->redact($e->getMessage()));
         }
+    }
+
+    /**
+     * The bot token is part of the URL, and Guzzle puts the URL into exception messages — never log it.
+     */
+    private function redact(string $text): string
+    {
+        $token = (string) config('services.telegram.token');
+
+        return $token !== '' ? str_replace($token, '***', $text) : $text;
     }
 
     /** @return string[] */
