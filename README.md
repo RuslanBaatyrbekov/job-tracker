@@ -33,7 +33,7 @@ that actually matter:
 
 | | |
 |---|---|
-| **Inbox → funnel** | IMAP sync every 30 min. Two-stage AI pipeline: cheap classification by subject, then deep analysis of relevant emails only. Replies are **matched to the existing application** (company name normalization + sender domain + title similarity), so "received" → "interview" → "rejected" is one application with a status history, not three rows. |
+| **Inbox → funnel** | IMAP sync every 15 min. Two-stage AI pipeline: cheap classification by subject, then deep analysis of relevant emails only. Replies are **matched to the existing application** (company name normalization + sender domain + title similarity), so "received" → "interview" → "rejected" is one application with a status history, not three rows. |
 | **Vacancy leads** | Job alert emails (LinkedIn, StepStone, Indeed, XING, Arbeitsagentur) are parsed into leads, de-duplicated by normalized URL and **scored 0–100** against your profile and rules (`config/job-search.php`). Morning digest of the best ones in Telegram. |
 | **Tailoring** | One click / one button: cover letter draft (DE or EN by vacancy language), resume bullets mirroring the vacancy keywords, missing keywords, rejection risks. |
 | **Follow-ups** | After 10 days without an answer — reminder with a ready follow-up draft. After 30 days — marked as *no response*, so the funnel stays honest. |
@@ -45,7 +45,7 @@ that actually matter:
 
 ```mermaid
 flowchart LR
-    IMAP[(Mailbox)] -->|every 30 min| Sync[mail:sync-headers]
+    IMAP[(Mailbox)] -->|every 15 min| Sync[mail:sync-headers]
     Sync --> Filter[FilterEmailsViaAiJob<br/>subject + sender]
     Filter -->|employer reply| Analyze[AnalyzeEmailBodyJob]
     Filter -->|job alert| Parse[ParseJobAlertJob]
@@ -108,10 +108,10 @@ Admin panel: http://localhost:8085/admin
 
 | Command | Schedule | What it does |
 |---|---|---|
-| `mail:sync-headers {--limit=50}` | every 30 min | Fetch new email headers and start the AI pipeline |
+| `mail:sync-headers {--limit=50}` | every 15 min | Fetch new email headers and start the AI pipeline |
 | `leads:digest` | weekdays 08:13 | Best new leads to Telegram |
 | `applications:follow-ups` | weekdays 10:07 | Follow-up reminders with drafts, mark ghosted applications |
-| `ai:strategy {--force}` | daily 19:07 | Strategy review per resume category, based on funnel numbers |
+| `ai:strategy {--force}` | every 4 hours | Strategy review per resume category, based on funnel numbers |
 | `telegram:poll` | docker service | Telegram bot (long polling) |
 | `applications:merge-duplicates {--dry-run}` | once | Merge duplicates created before company matching existed |
 | `mail:retry-failed` | manual | Re-run emails whose processing failed |

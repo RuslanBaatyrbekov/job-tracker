@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\NoteType;
 use App\Models\JobApplication;
 use App\Models\JobLead;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -154,7 +155,11 @@ class TelegramService
         }
 
         try {
-            $response = Http::timeout(15)->post("https://api.telegram.org/bot{$token}/{$method}", $payload);
+            // Retry network hiccups / 5xx / 429, but don't throw: the result is checked below.
+            $response = Http::timeout(15)
+                ->retry(3, 1000, fn ($e) => ! ($e instanceof RequestException)
+                    || $e->response->serverError() || $e->response->status() === 429, throw: false)
+                ->post("https://api.telegram.org/bot{$token}/{$method}", $payload);
 
             if ($response->failed()) {
                 Log::error("Telegram API error ({$method}): ".$response->body());

@@ -16,7 +16,7 @@ class ActivityChart extends ChartWidget
 
     protected int|string|array $columnSpan = 1;
 
-    protected static ?string $maxHeight = '250px';
+    protected static ?string $maxHeight = '700px';
 
     protected function getData(): array
     {
@@ -49,5 +49,12 @@ class ActivityChart extends ChartWidget
     protected function getType(): string
     {
         return 'line';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'maintainAspectRatio' => false,
+        ];
     }
 }

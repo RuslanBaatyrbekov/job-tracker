@@ -46,4 +46,11 @@ class OverallFunnelChart extends ChartWidget
     {
         return 'doughnut';
     }
+
+    protected function getOptions(): array
+    {
+        return [
+            'maintainAspectRatio' => false,
+        ];
+    }
 }
