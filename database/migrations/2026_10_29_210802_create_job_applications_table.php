@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create('job_applications', function (Blueprint $table) {
             $table->id();
 
-            // Связь с оригинальным письмом, из которого ИИ вытащил инфу (nullable, так как отклик можно создать вручную)
+            // Email the AI extracted the data from (nullable: applications can be created manually)
             $table->foreignId('source_email_id')->nullable()->constrained('emails')->nullOnDelete();
 
             $table->string('company_name');
@@ -23,10 +23,10 @@ return new class extends Migration
             $table->string('status')->default('applied');
 
             $table->string('salary_range')->nullable();
-            $table->text('job_description')->nullable(); // Оригинальное описание вакансии (если есть)
+            $table->text('job_description')->nullable(); // original vacancy text, if known
             $table->timestamp('applied_at')->nullable();
 
-            // Поле для хранения сырого ответа ИИ или доп. метаданных (чтобы было легко расширять без новых миграций)
+            // Raw AI answer and extra metadata (extendable without new migrations)
             $table->json('ai_metadata')->nullable();
 
             $table->timestamps();

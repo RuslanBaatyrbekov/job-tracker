@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\EmailStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Email extends Model
@@ -25,11 +27,17 @@ class Email extends Model
 
     protected $casts = [
         'date' => 'datetime',
+        'status' => EmailStatus::class,
     ];
 
     public function mailbox(): BelongsTo
     {
         return $this->belongsTo(Mailbox::class);
+    }
+
+    public function jobLeads(): HasMany
+    {
+        return $this->hasMany(JobLead::class, 'source_email_id');
     }
 
     public function jobApplication(): HasOne

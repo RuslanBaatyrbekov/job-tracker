@@ -11,12 +11,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mailboxes', function (Blueprint $table) {
-            $table->id();$table->string('email')->unique();
-            $table->string('host');$table->integer('port')->default(993);
-            $table->string('username');$table->text('password'); // Здесь будем хранить зашифрованный App Password
-            $table->string('protocol')->default('imap');$table->string('encryption')->default('ssl'); // ssl или tls
-            $table->timestamp('last_synced_at')->nullable(); // Время последней проверки
-            $table->boolean('is_active')->default(true);$table->timestamps();
+            $table->id();
+            $table->string('email')->unique();
+            $table->string('host');
+            $table->integer('port')->default(993);
+            $table->string('username');
+            $table->text('password'); // encrypted App Password
+            $table->string('protocol')->default('imap');
+            $table->string('encryption')->default('ssl'); // ssl or tls
+            $table->timestamp('last_synced_at')->nullable(); // last successful sync
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
         });
     }
 

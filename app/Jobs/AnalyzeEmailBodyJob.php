@@ -2,10 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Enums\EmailStatus;
 use App\Models\Email;
-use App\Models\JobApplication;
-use App\Models\ApplicationNote;
-use App\Services\GeminiService;
+use App\Services\Ai\CareerAssistant;
+use App\Services\ApplicationRecorder;
 use App\Services\ImapService;
 use App\Services\TelegramService;
 use Illuminate\Bus\Queueable;
@@ -14,82 +14,58 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
+/**
+ * Stage 2: read the employer email, update / create the application, notify in Telegram.
+ */
 class AnalyzeEmailBodyJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected int $emailId;
+    public int $tries = 4;
 
-    public function __construct(int $emailId)
-    {
-        $this->emailId = $emailId;
-    }
+    /** @var int[] */
+    public array $backoff = [60, 300, 900];
 
-    public function handle(ImapService $imapService, GeminiService $geminiService, TelegramService $telegramService): void
-    {
+    public function __construct(public int $emailId) {}
+
+    public function handle(
+        ImapService $imap,
+        CareerAssistant $assistant,
+        ApplicationRecorder $recorder,
+        TelegramService $telegram,
+    ): void {
         $email = Email::find($this->emailId);
 
-        if (!$email || $email->status !== 'pending_body_analysis') {
+        if (! $email || $email->status !== EmailStatus::PendingBodyAnalysis) {
             return;
         }
 
-        // 1. Докачиваем тело письма, если его еще нет
-        if (empty($email->body_text)) {
-            $downloaded = $imapService->fetchBodyForEmail($email);
-            if (!$downloaded) {
-                Log::warning("Не удалось скачать тело письма ID: {$email->id}");
-                return;
-            }
+        if (empty($email->body_text) && ! $imap->fetchBodyForEmail($email)) {
+            // Throw so the queue retries later (IMAP hiccup), instead of leaving the email stuck forever.
+            throw new RuntimeException("Could not download body of email {$email->id}");
         }
 
-        // 2. Отправляем текст в ИИ
-        $aiResult = $geminiService->analyzeEmailBody($email->subject, $email->body_text);
+        $analysis = $assistant->analyzeEmployerEmail(
+            (string) $email->subject,
+            trim($email->from_name.' <'.$email->from_address.'>'),
+            (string) $email->body_text,
+        );
 
-        if (!$aiResult) {
-            return;
+        $result = $recorder->record($email, $analysis);
+        $email->update(['status' => EmailStatus::Processed]);
+
+        // Notify only about something new — not about the 3rd "we received your application".
+        if ($result['created'] || $result['status_changed']) {
+            $telegram->sendApplicationAlert($result['application']->fresh(), ! $result['created']);
         }
+    }
 
-        $categoryId = null;
-        if (!empty($aiResult['category_name'])) {
-            $category = \App\Models\JobCategory::where('name', $aiResult['category_name'])->first();
-            if ($category) {
-                $categoryId = $category->id;
-            }
-        }
-
-        $application = JobApplication::create([
-            'source_email_id' => $email->id,
-            'job_category_id' => $categoryId,
-            'company_name'    => $aiResult['company_name'] ?? 'Неизвестная компания',
-            'position'        => $aiResult['position'] ?? 'Разработчик',
-            'status'          => $aiResult['status'] ?? 'applied',
-            'applied_at'      => $email->date,
-            'ai_metadata'     => $aiResult,
-        ]);
-
-        // 4. Сохраняем причину отказа, если есть
-        if (!empty($aiResult['rejection_reason'])) {
-            ApplicationNote::create([
-                'job_application_id' => $application->id,
-                'type'               => 'rejection_reason',
-                'content'            => $aiResult['rejection_reason'],
-            ]);
-        }
-
-        // 5. Сохраняем персонализированный умный совет с учетом глобальной стратегии
-        if (!empty($aiResult['ai_advice'])) {
-            ApplicationNote::create([
-                'job_application_id' => $application->id,
-                'type'               => 'ai_advice',
-                'content'            => $aiResult['ai_advice'],
-            ]);
-        }
-
-        // 6. Помечаем письмо как обработанное
-        $email->update(['status' => 'processed']);
-
-        // 7. Отправляем пуш в Telegram
-        $telegramService->sendApplicationAlert($application);
+    public function failed(Throwable $e): void
+    {
+        Email::whereKey($this->emailId)->update(['status' => EmailStatus::Failed]);
+        Log::error("Email {$this->emailId} analysis failed: ".$e->getMessage());
     }
 }

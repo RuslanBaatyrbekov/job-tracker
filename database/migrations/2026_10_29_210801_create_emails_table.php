@@ -14,25 +14,25 @@ return new class extends Migration
             $table->id();
             $table->foreignId('mailbox_id')->constrained()->cascadeOnDelete();
 
-            // Уникальный ID письма с сервера IMAP (обычно message-id или uid)
-            // Composite unique key (mailbox_id + imap_uid) предотвратит дублирование
+            // Unique id of the message on the IMAP server (uid)
+            // Composite unique key (mailbox_id + imap_uid) prevents duplicates
             $table->string('imap_uid');
 
             $table->string('subject')->nullable();
             $table->string('from_address');
             $table->string('from_name')->nullable();
-            $table->timestamp('date'); // Дата отправки письма
+            $table->timestamp('date'); // when the email was sent
 
-            // Статус обработки: pending_subject_scan, irrelevant, pending_body_analysis, processed
+            // Processing status, see App\Enums\EmailStatus
             $table->string('status')->default('pending_subject_scan');
 
-            // Тело письма докачиваем только если статус сменился на pending_body_analysis
+            // Body is downloaded only for emails that passed the subject filter
             $table->longText('body_text')->nullable();
             $table->longText('body_html')->nullable();
 
             $table->timestamps();
 
-            // Индексы для ускорения поиска непроверенных писем
+            // Fast lookup of unprocessed emails
             $table->unique(['mailbox_id', 'imap_uid']);
             $table->index('status');
         });
