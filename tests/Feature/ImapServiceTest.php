@@ -7,12 +7,12 @@ use App\Services\ImapService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
-use Webklex\PHPIMAP\ClientManager;
 use Webklex\PHPIMAP\Client;
+use Webklex\PHPIMAP\ClientManager;
 use Webklex\PHPIMAP\Folder;
 use Webklex\PHPIMAP\Message;
 use Webklex\PHPIMAP\Query\WhereQuery;
-use Webklex\PHPIMAP\Support\MessageCollection; // <-- Добавлен импорт
+use Webklex\PHPIMAP\Support\MessageCollection;
 
 class ImapServiceTest extends TestCase
 {
@@ -24,14 +24,14 @@ class ImapServiceTest extends TestCase
             'email' => 'test@test.com',
             'host' => 'imap.test.com',
             'username' => 'test',
-            'password' => 'secret'
+            'password' => 'secret',
         ]);
 
         $mockMessage = Mockery::mock(Message::class);
         $mockMessage->shouldReceive('getUid')->andReturn('uid-12345');
         $mockMessage->shouldReceive('getSubject')->andReturn(['Test Job Offer']);
 
-        $mockFrom = new \stdClass();
+        $mockFrom = new \stdClass;
         $mockFrom->mail = 'hr@company.com';
         $mockFrom->personal = 'HR Manager';
 
@@ -39,9 +39,12 @@ class ImapServiceTest extends TestCase
         $mockMessage->shouldReceive('getDate')->andReturn(now());
 
         $mockQuery = Mockery::mock(WhereQuery::class);
+        $mockQuery->shouldReceive('all')->andReturnSelf();
         $mockQuery->shouldReceive('leaveUnread')->andReturnSelf();
+        $mockQuery->shouldReceive('setFetchOrder')->with('desc')->andReturnSelf();
+        $mockQuery->shouldReceive('limit')->andReturnSelf();
 
-        // Исправлено: возвращаем MessageCollection вместо стандартной collect()
+        // Must be a MessageCollection, not a plain collect()
         $messageCollection = MessageCollection::make([$mockMessage]);
         $mockQuery->shouldReceive('get')->andReturn($messageCollection);
 
@@ -66,7 +69,7 @@ class ImapServiceTest extends TestCase
             'imap_uid' => 'uid-12345',
             'subject' => 'Test Job Offer',
             'from_address' => 'hr@company.com',
-            'status' => 'pending_subject_scan'
+            'status' => 'pending_subject_scan',
         ]);
     }
 }

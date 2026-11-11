@@ -2,70 +2,65 @@
 
 namespace App\Services;
 
-use App\Models\Mailbox;
+use App\Enums\EmailStatus;
 use App\Models\Email;
-use Webklex\PHPIMAP\ClientManager;
-use Webklex\PHPIMAP\Client;
+use App\Models\Mailbox;
+use App\Support\HtmlText;
 use Illuminate\Support\Facades\Log;
+use Webklex\PHPIMAP\Client;
+use Webklex\PHPIMAP\ClientManager;
 
 class ImapService
 {
-    public function __construct(protected ClientManager $clientManager)
-    {
-    }
+    public function __construct(protected ClientManager $clientManager) {}
 
     protected function getClient(Mailbox $mailbox): Client
     {
         $client = $this->clientManager->make([
-            'host'           => trim($mailbox->host),
-            'port'           => (int) trim($mailbox->port),
-            'encryption'     => 'ssl', // Gmail требует строчными буквами
-            'validate_cert'  => true,  // Для Gmail лучше включить проверку сертификата
-            'username'       => trim($mailbox->username),
-            'password'       => trim($mailbox->password),
-            'protocol'       => 'imap',
-            'authentication' => 'login', // Жестко заставляем пакет использовать обычный логин
+            'host' => trim($mailbox->host),
+            'port' => (int) trim((string) $mailbox->port),
+            'encryption' => $mailbox->encryption === 'none' ? false : ($mailbox->encryption ?: 'ssl'), // Gmail expects lowercase
+            'validate_cert' => true,
+            'username' => trim($mailbox->username),
+            'password' => trim($mailbox->password),
+            'protocol' => 'imap',
+            'authentication' => 'login', // force plain LOGIN (App Password), not OAuth
         ]);
 
         $client->connect();
+
         return $client;
     }
 
     /**
-     * Этап 1: Скачивание только заголовков писем (для экономии токенов и трафика).
+     * Stage 1: download headers only (saves tokens and traffic).
      */
     public function syncHeaders(Mailbox $mailbox, int $limit = 50): int
     {
         $count = 0;
+
         try {
-            \Log::info("=== Старт синхронизации ящика {$mailbox->email} (Лимит: {$limit}) ===");
+            Log::info("IMAP sync started for {$mailbox->email} (limit: {$limit})");
 
             $client = $this->getClient($mailbox);
-            \Log::info("1. Успешное подключение к IMAP. Выбираем папку INBOX...");
+            $query = $client->getFolder('INBOX')->query();
 
-            $folder = $client->getFolder('INBOX');
-
-            $query = $folder->query();
-
-            // Если лимит стандартный (50 и ниже) и есть дата последней синхронизации — используем её.
-            // Если передан большой лимит (ручной запуск), забираем свежие письма с конца без оглядки на дату.
+            // Regular run: everything since the last sync (IMAP SINCE has day precision, duplicates are skipped below).
+            // Manual run with a big limit: just take the latest N emails.
             if ($limit <= 50 && $mailbox->last_synced_at) {
-                \Log::info("2. Фильтр: ищем письма после " . $mailbox->last_synced_at->format('Y-m-d H:i:s'));
                 $query->since($mailbox->last_synced_at);
+                // Don't lose emails if more than $limit arrived since the last run.
+                $limit = max($limit, 200);
             } else {
-                \Log::info("2. Фильтр: ручной режим / большой лимит, берем последние {$limit} писем.");
                 $query->all();
             }
 
-            \Log::info("3. Выполняем запрос к серверу...");
-
-            // Сортируем от новых к старым и применяем переданный лимит
             $messages = $query->leaveUnread()
                 ->setFetchOrder('desc')
                 ->limit($limit)
                 ->get();
 
-            \Log::info("4. Найдено писем по запросу: " . $messages->count());
+            Log::info('IMAP messages found: '.$messages->count());
 
             foreach ($messages as $message) {
                 $uid = $message->getUid();
@@ -74,60 +69,57 @@ class ImapService
                     ->where('imap_uid', $uid)
                     ->exists();
 
-                if (!$exists) {
-                    Email::create([
-                        'mailbox_id'   => $mailbox->id,
-                        'imap_uid'     => $uid,
-                        'subject'      => $message->getSubject()[0] ?? 'No Subject',
-                        'from_address' => $message->getFrom()[0]->mail ?? 'unknown@example.com',
-                        'from_name'    => $message->getFrom()[0]->personal ?? null,
-                        'date'         => $message->getDate(),
-                        'status'       => 'pending_subject_scan',
-                    ]);
-                    $count++;
-                    \Log::info(" [+] Добавлено новое письмо UID: {$uid}");
-                } else {
-                    \Log::info(" [-] Письмо UID: {$uid} уже есть в базе, пропускаем.");
+                if ($exists) {
+                    continue;
                 }
+
+                Email::create([
+                    'mailbox_id' => $mailbox->id,
+                    'imap_uid' => $uid,
+                    'subject' => $message->getSubject()[0] ?? 'No Subject',
+                    'from_address' => $message->getFrom()[0]->mail ?? 'unknown@example.com',
+                    'from_name' => $message->getFrom()[0]->personal ?? null,
+                    'date' => $message->getDate(),
+                    'status' => EmailStatus::PendingSubjectScan,
+                ]);
+                $count++;
             }
 
             $mailbox->update(['last_synced_at' => now()]);
-            \Log::info("=== Синхронизация завершена. Всего добавлено: {$count} ===");
+            Log::info("IMAP sync finished for {$mailbox->email}, new emails: {$count}");
 
             $client->disconnect();
-
         } catch (\Exception $e) {
-            \Log::error("Ошибка синхронизации ящика {$mailbox->email}: " . $e->getMessage());
+            Log::error("IMAP sync failed for {$mailbox->email}: ".$e->getMessage());
         }
 
         return $count;
     }
 
     /**
-     * Этап 2: Докачивание тела конкретного письма (для тех, что прошли ИИ-фильтр по заголовкам)
+     * Stage 2: download the body of one email (only for emails that passed the subject filter).
      */
     public function fetchBodyForEmail(Email $email): bool
     {
         try {
             $client = $this->getClient($email->mailbox);
-            $folder = $client->getFolder('INBOX');
-
-            // Получаем конкретное письмо по его UID
-            $message = $folder->query()->getMessageByUid($email->imap_uid);
+            $message = $client->getFolder('INBOX')->query()->getMessageByUid($email->imap_uid);
 
             if ($message) {
-                // Если есть HTML-версия, берем ее, иначе текстовую
                 $bodyHtml = $message->getHTMLBody();
                 $bodyText = $message->getTextBody();
 
                 $email->update([
                     'body_html' => $bodyHtml,
-                    'body_text' => $bodyText ?: strip_tags($bodyHtml),
+                    'body_text' => $bodyText ?: HtmlText::fromHtml($bodyHtml),
                 ]);
+
+                $client->disconnect();
+
                 return true;
             }
         } catch (\Exception $e) {
-            Log::error("Ошибка получения тела письма {$email->id}: " . $e->getMessage());
+            Log::error("Failed to fetch body of email {$email->id}: ".$e->getMessage());
         }
 
         return false;

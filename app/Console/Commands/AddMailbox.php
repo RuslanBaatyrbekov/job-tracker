@@ -8,20 +8,21 @@ use Illuminate\Console\Command;
 class AddMailbox extends Command
 {
     protected $signature = 'mail:add';
-    protected $description = 'Добавить новый IMAP ящик для сканирования';
+
+    protected $description = 'Add an IMAP mailbox to scan';
 
     public function handle()
     {
-        $this->info('Добавление нового почтового ящика (IMAP)');
+        $this->info('Add an IMAP mailbox');
 
-        $email = $this->ask('Email адрес (например, you@gmail.com)');
-        $host = $this->ask('IMAP сервер (например, imap.gmail.com)', 'imap.gmail.com');
-        $port = $this->ask('Порт (по умолчанию 993)', 993);
-        $username = $this->ask('Имя пользователя', $email);
+        $email = $this->ask('Email address (e.g. you@gmail.com)');
+        $host = $this->ask('IMAP host', 'imap.gmail.com');
+        $port = $this->ask('Port', 993);
+        $username = $this->ask('Username', $email);
 
-        $password = $this->secret('Пароль (будет зашифрован в БД)');
+        $password = $this->secret('Password / App Password (stored encrypted)');
 
-        $encryption = $this->choice('Тип шифрования', ['ssl', 'tls', 'none'], 0);
+        $encryption = $this->choice('Encryption', ['ssl', 'tls', 'none'], 0);
 
         try {
             Mailbox::create([
@@ -35,9 +36,9 @@ class AddMailbox extends Command
                 'is_active' => true,
             ]);
 
-            $this->info("Ящик {$email} успешно добавлен и активирован!");
+            $this->info("Mailbox {$email} added and activated.");
         } catch (\Exception $e) {
-            $this->error("Ошибка при добавлении: " . $e->getMessage());
+            $this->error('Failed to add mailbox: '.$e->getMessage());
         }
     }
 }

@@ -2,31 +2,31 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
+use App\Jobs\FilterEmailsViaAiJob;
 use App\Models\Mailbox;
 use App\Services\ImapService;
+use Illuminate\Console\Command;
 
 class SyncMailboxes extends Command
 {
-    protected $signature = 'mail:sync-headers {--limit=50 : Количество последних писем для сканирования}';
-    protected $description = 'Синхронизирует заголовки писем со всех активных ящиков';
+    protected $signature = 'mail:sync-headers {--limit=50 : How many latest emails to scan}';
 
-    public function handle(ImapService $imapService)
+    protected $description = 'Download email headers from all active mailboxes and start AI filtering';
+
+    public function handle(ImapService $imapService): int
     {
         ini_set('memory_limit', '-1');
-        $this->info('Начинаем синхронизацию ящиков...');
 
         $limit = (int) $this->option('limit');
-        $mailboxes = Mailbox::where('is_active', true)->get();
 
-        foreach ($mailboxes as $mailbox) {
-            $this->info("Синхронизация {$mailbox->email} с лимитом: {$limit}...");
+        foreach (Mailbox::where('is_active', true)->get() as $mailbox) {
+            $this->info("Syncing {$mailbox->email} (limit {$limit})...");
             $count = $imapService->syncHeaders($mailbox, $limit);
-            $this->info("Добавлено {$count} новых заголовков писем.");
+            $this->info("  new headers: {$count}");
         }
 
-        $this->info('Синхронизация завершена!');
+        FilterEmailsViaAiJob::dispatch();
 
-        \App\Jobs\FilterEmailsViaAiJob::dispatch();
+        return self::SUCCESS;
     }
 }
