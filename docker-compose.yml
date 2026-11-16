@@ -1,5 +1,13 @@
+# WSL2 DNS often breaks after sleep / Wi-Fi change ("Could not resolve host").
+# Public resolvers for the PHP containers make IMAP / Gemini / Telegram calls survive that.
+x-dns: &dns
+    dns:
+        - 1.1.1.1
+        - 8.8.8.8
+
 services:
     app:
+        <<: *dns
         build:
             context: .
             dockerfile: docker/php/Dockerfile
@@ -42,6 +50,7 @@ services:
             - redis-data:/data
 
     worker:
+        <<: *dns
         build:
             context: .
             dockerfile: docker/php/Dockerfile
@@ -55,6 +64,7 @@ services:
             - db
 
     scheduler:
+        <<: *dns
         build:
             context: .
             dockerfile: docker/php/Dockerfile
@@ -68,6 +78,7 @@ services:
             - db
 
     telegram:
+        <<: *dns
         build:
             context: .
             dockerfile: docker/php/Dockerfile

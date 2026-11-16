@@ -25,6 +25,7 @@ class ImapService
             'password' => trim($mailbox->password),
             'protocol' => 'imap',
             'authentication' => 'login', // force plain LOGIN (App Password), not OAuth
+            'timeout' => 30, // never hang forever on a dead connection (blocks the next scheduled runs)
         ]);
 
         $client->connect();

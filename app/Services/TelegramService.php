@@ -13,6 +13,9 @@ class TelegramService
 {
     private const MAX_LENGTH = 4000; // Telegram limit is 4096, keep a margin for tags
 
+    /** Reason of the last failed getUpdates call (token redacted). */
+    public ?string $lastError = null;
+
     public function isConfigured(): bool
     {
         return (bool) (config('services.telegram.token') && config('services.telegram.chat_id'));
@@ -107,26 +110,36 @@ class TelegramService
     }
 
     /**
-     * Long polling for the bot. Returns raw updates.
+     * Long polling for the bot. Returns raw updates, or null when Telegram is unreachable
+     * (the caller backs off; logging is done there to avoid one line per failed request).
      */
-    public function getUpdates(int $offset, int $timeout = 25): array
+    public function getUpdates(int $offset, int $timeout = 25): ?array
     {
         $token = config('services.telegram.token');
         if (! $token) {
-            return [];
+            return null;
         }
+
+        $this->lastError = null;
 
         try {
             $response = Http::timeout($timeout + 10)
+                ->connectTimeout(10)
                 ->get("https://api.telegram.org/bot{$token}/getUpdates", [
                     'offset' => $offset,
                     'timeout' => $timeout,
                     'allowed_updates' => json_encode(['message', 'callback_query']),
                 ]);
         } catch (\Throwable $e) {
-            Log::warning('Telegram getUpdates failed: '.$this->redact($e->getMessage()));
+            $this->lastError = $this->redact($e->getMessage());
 
-            return [];
+            return null;
+        }
+
+        if ($response->failed()) {
+            $this->lastError = 'HTTP '.$response->status().': '.$this->redact($response->body());
+
+            return null;
         }
 
         return $response->json('result') ?? [];
